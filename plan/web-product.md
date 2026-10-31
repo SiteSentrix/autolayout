@@ -42,8 +42,32 @@ layer adds no layout logic.
 | M9.3 | Report: unconnected, verifier violations, wirelength, seed, "not KiCad-graded" | numbers equal `autolayout grade`/`verify` on the written file |
 | M9.4 | Browser UI + board viewer + headless screenshot command | screenshot taken by script in CI-able form |
 | M9.5 | Optional external KiCad grading hook (Windows worker posts DRC result) | report shows KiCad numbers when present |
+| M9.6 | Railway packaging: Dockerfile, `/health`, `PORT`, volume path, deploy doc | image runs locally and routes a corpus board |
+
+## Hosting: Railway (owner's choice, 2026-10-31)
+Facts below are from docs.railway.com, read 2026-10-31; re-check before deploying.
+- Build from a root `Dockerfile` (capital D; auto-detected). Multi-stage: Rust build, small runtime image
+  that also carries the `autolayout` binary the job runner spawns.
+- The server must listen on the injected `PORT`, bind `0.0.0.0`. Expose `GET /health` (2xx when ready);
+  set it as the healthcheck path (default timeout 300 s).
+- **Do not use `railway.toml`/`railway.json`**: Railway marks config-as-code deprecated (legacy files
+  work until 2026-12-01). Set builder and healthcheck in the service settings, written down in `docs/deploy-railway.md`.
+- Container filesystem is treated as ephemeral. Job directories go on one Railway **volume** (size by plan:
+  0.5 GB trial, 5 GB hobby, 50 GB pro). A volume means **one instance, no replicas**, one volume per service,
+  and a non-root image needs `RAILWAY_RUN_UID=0` or matching ownership. So: single instance, a bounded job queue,
+  jobs deleted by a sweeper, and disk use capped below the volume size.
+- Railway gives a public URL by default. A public endpoint that runs minutes of CPU per upload is a cost and
+  abuse risk, so **no deploy without** an access gate (shared secret or login), per-client rate limits, a
+  max concurrent-jobs setting, and a usage/spend limit set in Railway. Cost is usage-based: I have not priced it.
+- Secrets (access token) only as Railway variables, never in the repo.
+- Cloud sessions cannot deploy for you: they have no Railway access and I will not ask for tokens in chat.
+
+New task: **M9.6** Dockerfile, `/health`, `PORT` handling, volume path from an env var, `docs/deploy-railway.md`
+(click-by-click settings), local `docker build` smoke test. Done when the image runs locally with `PORT` set,
+answers `/health`, and routes a corpus board end to end.
 
 ## Needs the owner's decision (stop-and-ask list)
-Accounts/auth, payments, hosting provider and cost, public name and copy, data retention for
-uploaded boards (customer designs are confidential), whether the service is public or private.
-Until decided: no auth, no payments, local-only, nothing deployed.
+Decided: hosting = Railway. Still open: access gate (shared secret vs login/accounts), payments, public name and
+copy, data retention (customer boards are confidential; default proposal: delete inputs and outputs 24 h
+after the job, nothing logged beyond counts), public vs private, monthly spend cap.
+Until decided: no auth, no payments, nothing deployed.

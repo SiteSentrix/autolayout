@@ -58,7 +58,7 @@ M0 lossless file layer · M1 board model (move/rotate/flip) · M2 grader · M3.1
 | M6 | Routability | export DSN, route with Freerouting as an external process, report unconnected; placement scored by how well a router finishes it |
 | M7 | Own router | rules from the project, grid model, A* + negotiated congestion, writer, an independent file verifier, all KiCad-judged on 37 service-placed boards. **Met on unconnected vs Freerouting; open:** MCU escape on weak placements, plane islands, per-class widths |
 | M8 | RF checks | intended RF (antenna keepouts, matching-network order and length, feed lines, stitching) and unintended RF (switch loops, crystals, fast-edge nets, cable-connected nets, plane gaps) reported on every corpus board, each limit cited to a datasheet or app note; the placer gets them as constraints |
-| M9 | Web product | Rust web service around the engine: upload a board, get a placed and routed board plus a report, API first. Plan: `plan/web-product.md`. Not started |
+| M9 | Web product | Rust web service around the engine: upload a board, get a placed and routed board plus a report, API first. Plan: `plan/web-product.md`; hosting decided: Railway. M9.1 done |
 
 ## Progress log
 
