@@ -47,12 +47,12 @@ Without `AUTOLAYOUT_CORPUS`/KiCad, corpus and cross-check steps print `SKIPPED`.
 ```
 crates/sexpr  lossless s-expression parser/writer     crates/place  placement
 crates/board  typed board model                       crates/route  router, verifier
-crates/grade  metrics re-derived from a written file  crates/cli    `autolayout` binary
+crates/grade  metrics re-derived from a written file  crates/engine commands as a library; crates/cli = thin binary
 tools/        Python + shell helpers run by KiCad's python (pcbnew), Windows-side
 plan/         STATUS.md and execution-plan.md          docs/gaps.md  ranked work list
 docs/m7-results/  archived measurement records         .claude/      hooks (see settings.json)
 ```
-Dependencies point down only: `sexpr` ← `board` ← `place`/`route`/`grade` ← `cli`.
+Dependencies point down only: `sexpr` ← `board` ← `place`/`route`/`grade` ← `engine` ← `cli`.
 
 ## CORPUS (outside the repo, read-only)
 `AUTOLAYOUT_CORPUS` → `C:/Portcullis/controller/boards/` (20 boards, 2/4-layer, 50–200 parts).

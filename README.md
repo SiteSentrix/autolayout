@@ -30,7 +30,7 @@ cargo build --release
 ```
 
 Crates: `sexpr` (lossless S-expression layer), `board` (board model),
-`grade` (grader), `place` (placer), `route` (router), `cli`.
+`grade` (grader), `place` (placer), `route` (router), `engine` (the commands as a library), `cli` (thin binary).
 
 ## How it's built
 
