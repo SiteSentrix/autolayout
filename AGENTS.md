@@ -22,7 +22,7 @@ Orient → plan → implement + test → verify → PR → record. Exact steps a
 stop-and-ask list: [`plan/execution-plan.md`](plan/execution-plan.md) § "Autonomous protocol".
 
 ## QUALITY GATE
-`./ci.sh` (asset check, fmt, clippy `-D warnings`, tests; about 30 s warm, measured
+`./ci.sh` (asset check, fmt, clippy `-D warnings`, tests; 16 s from a fresh clone, 32 s on first run; measured
 2026-10-31 in the cloud). Run it before every commit. `./ci.sh --quick` (assets, fmt, clippy, seconds)
 between edits. CI calls the same `./ci.sh`.
 Gate on its exit status, never on a pipe (`ci.sh | tail && git commit` committed a red tree once,
