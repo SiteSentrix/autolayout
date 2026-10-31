@@ -21,7 +21,7 @@
 | M5.1 | Re-compare placement against returns regenerated from current freeplace boards (stale returns, +2–12 footprints) | round 18 |
 | M5.2 | Off-board caps (c2 C29, io C25) and parts off board on c4/g2 | rounds 15, 17 |
 | M8 | RF checks: not started |
-| M9.1 | Extract `crates/engine` from the CLI (first step of the web product, `plan/web-product.md`) | issue | milestones |
+| M9.1 | Extract `crates/engine` from the CLI (first step of the web product, `plan/web-product.md`) | issue #4 | milestones |
 
 ## Shipped so far
 
