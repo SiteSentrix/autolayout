@@ -6,12 +6,7 @@ version = 4
 name = "autolayout"
 version = "0.1.0"
 dependencies = [
- "autolayout-board",
- "autolayout-grade",
- "autolayout-place",
- "autolayout-route",
- "autolayout-sexpr",
- "serde_json",
+ "autolayout-engine",
 ]
 
 [[package]]
@@ -19,6 +14,18 @@ name = "autolayout-board"
 version = "0.1.0"
 dependencies = [
  "autolayout-sexpr",
+]
+
+[[package]]
+name = "autolayout-engine"
+version = "0.1.0"
+dependencies = [
+ "autolayout-board",
+ "autolayout-grade",
+ "autolayout-place",
+ "autolayout-route",
+ "autolayout-sexpr",
+ "serde_json",
 ]
 
 [[package]]

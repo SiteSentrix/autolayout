@@ -61,6 +61,18 @@ else
   echo "KiCad cross-check: flip of all $(grep -c . "$tmp/kc_flip.tsv") pads (183 parts) identical to KiCad's own flip"
 fi
 
+# CLI behaviour fingerprint (corpus boards, Linux only: hashes are byte-exact stdout and files).
+if [[ -n "${AUTOLAYOUT_CORPUS:-}" && "$(uname -s)" == "Linux" ]]; then
+  cargo build --release -q
+  g="$(mktemp -u -d)"
+  if ! diff <(grep -v '^#' tools/cli_golden.expected) <(tools/cli_golden.sh "$g" 2>&1); then
+    echo "FAIL: CLI output changed (tools/cli_golden.sh vs tools/cli_golden.expected)"; rm -rf "$g"; exit 1
+  fi
+  rm -rf "$g"; echo "CLI golden: $(grep -vc '^#' tools/cli_golden.expected) fingerprints identical"
+else
+  echo "SKIPPED: CLI golden fingerprints (needs AUTOLAYOUT_CORPUS on Linux)"
+fi
+
 # Slow KiCad cross-checks (~20 min): every placed corpus board's courtyard
 # overlaps against kicad-cli DRC. Run after touching courtyard geometry.
 if [[ "${1:-}" == "--kicad-full" ]]; then
