@@ -20,7 +20,8 @@
 | M7.5c | Per-class track widths (only g2i differs) | gaps.md, 2026-10-13 |
 | M5.1 | Re-compare placement against returns regenerated from current freeplace boards (stale returns, +2–12 footprints) | round 18 |
 | M5.2 | Off-board caps (c2 C29, io C25) and parts off board on c4/g2 | rounds 15, 17 |
-| M8 | RF checks: not started | milestones |
+| M8 | RF checks: not started |
+| M9.1 | Extract `crates/engine` from the CLI (first step of the web product, `plan/web-product.md`) | issue | milestones |
 
 ## Shipped so far
 
@@ -57,6 +58,7 @@ M0 lossless file layer · M1 board model (move/rotate/flip) · M2 grader · M3.1
 | M6 | Routability | export DSN, route with Freerouting as an external process, report unconnected; placement scored by how well a router finishes it |
 | M7 | Own router | rules from the project, grid model, A* + negotiated congestion, writer, an independent file verifier, all KiCad-judged on 37 service-placed boards. **Met on unconnected vs Freerouting; open:** MCU escape on weak placements, plane islands, per-class widths |
 | M8 | RF checks | intended RF (antenna keepouts, matching-network order and length, feed lines, stitching) and unintended RF (switch loops, crystals, fast-edge nets, cable-connected nets, plane gaps) reported on every corpus board, each limit cited to a datasheet or app note; the placer gets them as constraints |
+| M9 | Web product | Rust web service around the engine: upload a board, get a placed and routed board plus a report, API first. Plan: `plan/web-product.md`. Not started |
 
 ## Progress log
 
