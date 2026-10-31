@@ -5,3 +5,5 @@
 *.dsn
 *.ses
 /out/
+__pycache__/
+*.pyc

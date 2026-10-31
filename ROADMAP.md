@@ -1,5 +1,31 @@
 # Roadmap
 
+## Honest assessment
+
+*Graded by behaviour on the corpus, from the figures recorded in this file; not re-measured on 2026-10-31 (the cloud has no KiCad or corpus).*
+
+- **Solid:** the lossless file layer (116/116 corpus files byte-exact, 20 000 fuzz cases, 0 panics) and the board model (523/523 pads agree with pcbnew after move/rotate/flip). The grader's courtyard overlaps match KiCad DRC on 35/35 boards.
+- **Works, narrowly:** the router. On the four service-final boards it leaves 0 unconnected where Freerouting leaves 12–36, in seconds. Across all 37 service-placed boards it is **not** done: 141 unconnected remain (KiCad, round 19) and 19/37 boards have 0 KiCad routing violations. Most remaining opens are MCU (QFN, 0.4 mm pitch) pin escapes on older candidate placements.
+- **Promising, thinly evidenced:** the placer. It ends within 0–2 unconnected of the commercial return on 15/15 boards with netlists, with shorter track. That is one run per board, with our own router on both sides, and our footprint counts exceed the service's by 2–12 on seven boards (unexplained; likely stale returns). Only m1 was ever placed DRC-clean as a whole board. Not yet a "beats the bar" claim.
+- **Not started:** M8 RF checks. M5's optimiser beyond rule-based placement + halo on/off is unmeasured.
+- **Process gap:** every KiCad-graded number needs the Windows machine. Cloud work stays "pending KiCad".
+- **Not a Quilter clone:** no UI, no service, no schematic-aware flow; it is a CLI engine that places and routes KiCad boards.
+
+## Gap list (prioritised; detail in [`docs/gaps.md`](docs/gaps.md))
+
+| id | gap | evidence |
+|----|-----|----------|
+| M7.5a | MCU-pin escape: grid/pad pitch mismatch on QFN-60 (grid origin shift swings unconnected 14–33 on m1/candidate4) | `docs/m7-results/2026-10-15-escape-notes.md` |
+| M7.5b | Plane islands: repair built, KiCad confirmation of round 20/21 pending | gaps.md M7.5, round 20 |
+| M7.5c | Per-class track widths (only g2i differs) | gaps.md, 2026-10-13 |
+| M5.1 | Re-compare placement against returns regenerated from current freeplace boards (stale returns, +2–12 footprints) | round 18 |
+| M5.2 | Off-board caps (c2 C29, io C25) and parts off board on c4/g2 | rounds 15, 17 |
+| M8 | RF checks: not started | milestones |
+
+## Shipped so far
+
+M0 lossless file layer · M1 board model (move/rotate/flip) · M2 grader · M3.1–M3.2 grouping · M4.1–M4.3 placer (first legal placer, front-only default) · M6.1–M6.2 routability harness · M7.0–M7.4 own router (rules, model, A\*, negotiated congestion, writer + verifier) · M7.5 stub sharing, portfolio, island repair, parallel attempts · agent kit (AGENTS.md, hooks, CI workflow, asset check; 2026-10-31).
+
 **Stage:** M7 — our own router is built and judged by KiCad on all 37 service-placed corpus boards (M7.0-M7.4 closed, M7.5 largely met: it leaves 0 unconnected where Freerouting leaves 12-36 on the service-final boards, in seconds). Open: MCU-pin escape on the older candidate placements (stub reach widened; the rest is congestion), plane islands (the verifier now emulates them, awaiting KiCad calibration in Round 12), per-class track widths (only g2i differs). Placement judged by routability (Rounds 12 and 15, KiCad, our router on both sides): our placer's default output ends within 0-2 unconnected of the commercial return on 15 of 15 boards with netlists (m1, c4, emu, g2, and 11 more in Round 17) with shorter track on every one and 0 KiCad clearance errors; one run per board, our footprint counts exceed the service's by 2-12 on seven boards (unexplained), and two 10 uF caps are off-board.
 **Updated:** 2026-10-13
 

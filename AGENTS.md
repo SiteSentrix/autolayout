@@ -1,168 +1,76 @@
 # autolayout — instructions for agents
 
-autolayout is an open-source placement and routing engine for KiCad boards,
-written in Rust. It reads a `.kicad_pcb`, places and routes it, and writes a
-`.kicad_pcb` that KiCad opens unchanged except for what we meant to change. It
-runs headless from a CLI; it does not need KiCad installed to place or route
-(only to grade, via `kicad-cli`).
+autolayout is an open-source placement and routing engine for KiCad boards, in
+Rust (MIT OR Apache-2.0). It reads a `.kicad_pcb`, places and routes it, and
+writes a `.kicad_pcb` that KiCad opens unchanged except for what we meant to
+change. Headless CLI; KiCad is needed only to grade (`kicad-cli`). Placement
+comes first: Freerouting routes parts where you left them, so placement is where
+we can beat free tools. Overview and results: [README.md](README.md).
 
-Placement comes first. Routing a bad placement well is still a bad board, and
-placement is where every free tool stops: Freerouting routes the parts where you
-left them. The bar we measure against is a commercial service's returned layout
-on the same board (see Corpus).
+**Product family:** autolayout (this repo, public engine) · Portcullis (private,
+AGPL access-control controller; supplies the board corpus and the domain docs;
+never copy its code).
 
-## Start every session here
-1. Read [`ROADMAP.md`](ROADMAP.md) (stage, headline numbers, what's next) and the
-   ranked work list in [`docs/gaps.md`](docs/gaps.md). Unless the user gives you a
-   task, take the top item.
-2. Follow the loop: **orient → plan → implement + test → verify → record → commit.**
-   Verify means graded by an external tool on a real board (below), not "it ran".
-   Record means the ROADMAP and gaps entries move in the same commit as the code.
-3. Keep each step small enough to commit within the hour. A step that only exists
-   in your head is lost when the session stops; commit unfinished work on a branch
-   rather than holding it.
+## SESSION START (fixed order)
+1. [`ROADMAP.md`](ROADMAP.md) section "Honest assessment" (top ~40 lines only; the file is long).
+2. [`plan/STATUS.md`](plan/STATUS.md).
+3. The task: a GitHub issue, or [`plan/execution-plan.md`](plan/execution-plan.md). With no task given, take the oldest open `claude-queue` issue; if none, the top item of the ROADMAP gap list (detail in [`docs/gaps.md`](docs/gaps.md)).
+4. Only the docs that task needs. `docs/windows-handoff.md` (1100 lines) and `docs/m7-results/` are archives: grep them, never read them whole.
 
-## Non-negotiables
+## THE LOOP
+Orient → plan → implement + test → verify → PR → record. Exact steps and the
+stop-and-ask list: [`plan/execution-plan.md`](plan/execution-plan.md) § "Autonomous protocol".
 
-**1. Never damage a board.**
-- Input files are read-only. Output always goes to a new path; refuse to write
-  over the input.
-- The file layer is lossless: parse → write without edits must reproduce the
-  input **byte for byte**. `cargo test` checks this on every corpus board. An
-  edit changes only the nodes it means to change; everything else, including
-  formatting, keeps its original bytes.
-- Never drop a node you do not understand. Unknown tokens pass through untouched.
+## QUALITY GATE
+`./ci.sh` (asset check, fmt, clippy `-D warnings`, tests; about 30 s warm, measured
+2026-10-31 in the cloud). Run it before every commit. `./ci.sh --quick` (assets, fmt, clippy, seconds)
+between edits. CI calls the same `./ci.sh`.
+Gate on its exit status, never on a pipe (`ci.sh | tail && git commit` committed a red tree once,
+594157d): `bash ci.sh > out/ci_last.txt 2>&1; echo "exit=$?"`.
+Without `AUTOLAYOUT_CORPUS`/KiCad, corpus and cross-check steps print `SKIPPED`. A skip is never a pass.
+`./ci.sh --kicad-full` (~20 min, Windows only) after touching courtyard geometry.
 
-**2. Ask the part, not the name.** Nothing structural is decided by matching a
-net name, a refdes or a pin number. A design does not guarantee names: power
-rails are called anything, `U1` means a different part on every board, the USB
-pair may be `N$80/N$81`. Decide from what the file actually says: pad electrical
-types (`pintype`), net classes, footprint attributes, connectivity, geometry.
-A rule keyed on a name does not fail loudly; it matches nothing and the tool
-reports a confident answer about the wrong object. If a name is genuinely the
-only signal, it is a user-supplied override in a config file, never a literal
-in the code.
+## RULES (non-negotiable)
+1. **Never damage a board.** Inputs are read-only; output to a new path (refuse to overwrite input). parse → write with no edits is byte-exact (tested on every corpus board). Unknown nodes pass through untouched.
+2. **Ask the part, not the name.** Never decide from a net name, refdes or pin number; use pintype, net class, footprint attributes, connectivity, geometry. If a name is the only signal it is a config override, never a literal in code.
+3. **We do not grade our own work.** Improvement claims come from `kicad-cli pcb drc` or `autolayout grade` read back from the written file. Always report the **unconnected count**; "the router stopped" is not "routed".
+4. **Deterministic.** Same input + options + seed → same bytes. Randomness takes an explicit seed, printed in the report.
+5. **Never crash on input.** Board files are untrusted. Return `Result`; no `unwrap/expect/panic!/todo!/unimplemented!/unreachable!` outside tests (lints enforce). Use `.get(i)` for data-derived indices, cap sizes/depths read from input, check floats are finite. Parsers keep their fuzz tests (`fuzz:` line in the gate).
+6. **Clean room.** Never read or copy KiCad or Freerouting source (GPL-3), any GPL/AGPL code, or any competitor's (Quilter's etc.) code, artwork, wording or data. Behaviour comes from public docs (dev-docs.kicad.org, papers, textbooks), cited by URL in the module docstring. KiCad/Freerouting may be *run* as external programs.
+7. **Every number has a source.** Docs and commits name the board, the command, and measured vs estimated. Half an answer is recorded as half.
+8. **Assets.** Every non-code asset has a row in `ASSETS.md` (source, licence); `tools/check_assets.sh` fails the gate otherwise. Corpus boards, generated boards, secrets, `.env` and files over 1 MB are never committed.
+9. **Everything user-visible is a CLI command** (`autolayout --help`). There is no UI, so no screenshot step; agents drive and test the CLI directly.
+10. **Commits are authored by the user only** (`Bruce Wattendorf <bwattendorf@gmail.com>`): no `Co-Authored-By`, no AI attribution lines in commits or PRs. Commit messages start with the task ID (`M7.5: ...`). One task per commit.
+11. **Parallel agents:** one issue, one branch/worktree each, touch only the crates the issue needs, own `CARGO_TARGET_DIR`, delete it when done.
 
-**3. We do not grade our own work.** "The placer finished" and "the router
-finished" are not results. Every claim of improvement comes from tools that did
-not produce the board:
-- `kicad-cli pcb drc` — clearance violations, unconnected count, schematic parity
-  (`"C:/Program Files/KiCad/9.0/bin/kicad-cli.exe"` on this machine);
-- the metrics in `autolayout grade`, which re-derive everything from the
-  written file read back off disk, not from the placer's in-memory state.
-Always report the **unconnected count**. Never let "routed" mean "the router
-stopped".
-
-**4. Deterministic.** Same input file + same options + same seed → the same
-output bytes. Any randomness takes an explicit seed, printed in the report. A
-result nobody can reproduce cannot be compared against.
-
-**5. Never crash.** Board files are untrusted input. Fallible work returns
-`Result`; the workspace lints ban `unwrap`, `expect`, `panic!`, `todo!`,
-`unimplemented!` and `unreachable!` outside tests, so `./ci.sh` fails on them.
-Use `.get(i)` when an index comes from data; cap sizes and depths read from
-input; check floats are finite before using them. Tests may unwrap.
-
-**6. Clean-room, licence-clean.** Code is MIT OR Apache-2.0. Never copy code
-from GPL/AGPL projects — that includes **KiCad itself and Freerouting** (both
-GPL-3). Behaviour comes from public documentation (the KiCad file-format docs at
-dev-docs.kicad.org, published papers, textbooks), cited by URL in the module
-docstring. Freerouting and KiCad may be *run* as external programs for
-comparison; their source is never read into this repo.
-
-**7. Every number comes from somewhere.** A metric in a doc or commit message
-names the board, the command, and whether it was measured or estimated. If it
-was not measured, say so; do not round a guess up to a fact. If an investigation
-only got half an answer, record the half and name the missing half.
-
-## Corpus
-
-Real boards, used read-only and **never committed here** (they carry their own
-licences, and they are large):
-
-- `C:/Portcullis/controller/boards/` — 20 boards of an access-control family,
-  2- and 4-layer, 50–200 parts. Useful files per board:
-  - `quilter/freeplace/<sku>/<sku>.kicad_pcb` — fixed parts (holes, connectors,
-    relays) on the outline, everything else on a staging grid: **our input**.
-  - `quilter/returned/<sku>/<candidate>/<sku>.kicad_pcb` — the commercial
-    service's placed-and-routed result: **the bar**.
-  - `quilter/fab/m1/`, `quilter/fab/emu/` — the two boards taken to fab.
-  - **Stale boards:** as of 2026-10-12 the r and m2 boards do not match their
-    netlists (missing R28/R29 and R94–R97). Don't grade against them until they
-    are regenerated.
-- Portcullis's own docs record what good looks like on these boards and why:
-  its `CLAUDE.md`, `controller/docs/m1-layout-experiment-2026-10-10.md` (the
-  measured baseline), and `controller/docs/comprehension-pairing-2026-08-28.md`.
-  Read them for the domain; don't copy its code (different licence, AGPL).
-
-`AUTOLAYOUT_CORPUS` points at the corpus root. Tests that need it skip,
-printing why, when it is unset, so the repo builds and tests anywhere.
-
-## Layout
-
+## PROJECT MAP
 ```
-crates/
-  sexpr/   lossless KiCad s-expression parser/writer (byte-exact round-trip)
-  board/   typed view over the tree: footprints, pads, nets, outline, layers
-  place/   placement: grouping from connectivity, rules, optimisation, legality
-  route/   routing (later — see ROADMAP)
-  grade/   metrics re-derived from a written file
-  cli/     the `autolayout` binary
+crates/sexpr  lossless s-expression parser/writer     crates/place  placement
+crates/board  typed board model                       crates/route  router, verifier
+crates/grade  metrics re-derived from a written file  crates/cli    `autolayout` binary
+tools/        Python + shell helpers run by KiCad's python (pcbnew), Windows-side
+plan/         STATUS.md and execution-plan.md          docs/gaps.md  ranked work list
+docs/m7-results/  archived measurement records         .claude/      hooks (see settings.json)
 ```
+Dependencies point down only: `sexpr` ← `board` ← `place`/`route`/`grade` ← `cli`.
 
-Lower crates never depend on higher ones (`sexpr` ← `board` ← `place`/`route`/
-`grade` ← `cli`). Add a crate only when a layer needs one.
+## CORPUS (outside the repo, read-only)
+`AUTOLAYOUT_CORPUS` → `C:/Portcullis/controller/boards/` (20 boards, 2/4-layer, 50–200 parts).
+Per board: `quilter/freeplace/<sku>/<sku>.kicad_pcb` is our input (fixed parts on the outline,
+rest on a staging grid); `quilter/returned/<sku>/<candidate>/` is the commercial service's
+placed-and-routed result (**the bar**); `quilter/fab/{m1,emu}/` went to fab. The r and m2
+boards are stale vs their netlists (missing R28/R29, R94–R97): don't grade against them.
+Domain docs live in Portcullis (`CLAUDE.md`, `controller/docs/m1-layout-experiment-2026-10-10.md`).
 
-## Quality gate
+## ENVIRONMENTS
+- **Windows (owner's machine):** Rust GNU toolchain (`stable-x86_64-pc-windows-gnu`), cargo in `~/.cargo/bin` (may need adding to `PATH`); KiCad 9.0 at `C:/Program Files/KiCad/9.0/` (`kicad-cli.exe`, its python for `tools/*.py`).
+- **Cloud (Ubuntu):** setup = rustup minimal + clippy,rustfmt, and `git clone --depth 1 https://github.com/bwattendorf/Portcullis.git ../Portcullis` with `AUTOLAYOUT_CORPUS` pointing at its `controller/boards`. Needs GitHub access to both private repos. No KiCad or Freerouting: router/placer results made there are "pending KiCad" until graded on Windows. Freerouting comparisons need Java 21+ and the freerouting-2.3.0 jar.
 
-`./ci.sh` before every commit: `cargo fmt --check`, `cargo clippy --all-targets
--- -D warnings` (including the no-panic lints), `cargo test`. Paste its last line
-when claiming it passed.
-
-**Gate on its exit status, never on a pipe.** `ci.sh ... | tail -2 && git
-commit` commits even when ci fails: the pipeline's status is `tail`'s. That
-happened once (commit 594157d, 2026-10-12, a clippy failure) and was fixed in
-the next commit. Run `bash ci.sh > out/ci_last.txt 2>&1; echo "exit=$?"`, read
-the exit, then commit. A check that exists but is not run is the same as no
-check: if you add one, add it to `ci.sh`.
-
-One task per commit, message starting with the ROADMAP id (`M0.2: footprint
-iterator`).
-
-## Running in a Claude cloud session
-
-The router work (M7) is meant to run in a cloud session too. Setup script for
-the environment (Ubuntu):
-
-```sh
-curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal -c clippy,rustfmt
-. "$HOME/.cargo/env"
-git clone --depth 1 https://github.com/bwattendorf/Portcullis.git ../Portcullis
-echo 'export AUTOLAYOUT_CORPUS="$(cd ../Portcullis/controller/boards && pwd)"' >> ~/.bashrc
-```
-
-The environment needs GitHub access to **both** private repos (autolayout and
-Portcullis). Without KiCad, `ci.sh` prints `SKIPPED: KiCad cross-check`.
-That is expected in the cloud and is never a pass. Router results produced
-there must be graded by KiCad DRC on the Windows machine before anything is
-claimed (rule 3). Freerouting comparisons need Java 21+ and the
-freerouting-2.3.0 jar; neither is in the cloud image by default.
-
-## Toolchain on this machine
-
-Rust stable, **GNU toolchain** (`stable-x86_64-pc-windows-gnu`, no Visual Studio
-needed); cargo is in `~/.cargo/bin`, which may need adding to `PATH` in a fresh
-shell. KiCad 9.0 at `C:/Program Files/KiCad/9.0/`.
-
-## Don't
-- Don't claim a check passed without pasting what it printed.
-- Don't overwrite an input board, in the corpus or anywhere else.
-- Don't commit corpus boards, generated boards, or anything over 1 MB.
-- Don't invent a KiCad token, layer name or footprint field. If it is not in the
-  file-format docs or a real file, it is not known yet — say so.
-
-## Commit authorship
-
-Commit as Bruce Wattendorf <bwattendorf@gmail.com> (the repo's git config), never as Claude. Credit Claude with a trailer at the end of the message:
-
-    Co-Authored-By: Claude <noreply@anthropic.com>
+## PITFALLS
+- Doc line lengths: `ROADMAP.md` and `docs/gaps.md` hold multi-thousand-character lines (M7.5 entries). Never `cat` them; `grep -n` or read by line range.
+- Rotated-pad convention was measured, not assumed (rotation adds its delta to every pad/text angle, board terms). Don't "fix" it without the m1 KiCad cross-check.
+- Round counts on the 37 routing boards come from `tools/m7_batch.py` on Windows (≈50 min); the local verifier's numbers are *not* KiCad's until a round confirms them.
+- Planes in `tools/m7_batch.py` are poured and filled before routing; `route` therefore ignores existing fills on declared plane layers (`verify_fresh_planes`) while `verify` reads them.
+- Route portfolio on big boards is slow (c4/3p5mil-candidate3 ≈ 270–430 s); don't loop it in tests.
+- `__pycache__`/`.pyc` were once committed; now ignored and checked by `check_assets.sh`.
+- Hooks in `.claude/` block board-file edits, `Cargo.lock` edits (set `ALLOW_LOCK_EDIT=1` for a dependency task), licence edits and non-temp `rm -rf`; a block is not a bug, change the approach.
