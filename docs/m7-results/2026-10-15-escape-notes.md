@@ -102,3 +102,22 @@ Idea: before routing, match the off-grid pads of each row monotonically to grid 
 
 ## State of the m1/candidate4 problem
 Measured and found not to help on this board: reroute with failed nets first, flipping small caps, moving or rotating U1, reserving landing cells. Helps: the rip-up retry (12 to 10). Not tried: a router that works off-grid for the fan-out region (a local finer lattice), more layers (agreed as the last resort), moving other parts than U1 and the caps.
+
+---
+
+# Update 6: align the grid to the QFN pad pitch (2026-10-31, issue #2, m1/candidate4; LOCAL VERIFIER ONLY, not KiCad; temporary env override, reverted, not committed)
+
+Cloud session, corpus cloned from Portcullis (`AUTOLAYOUT_CORPUS`), no KiCad. Baseline reproduced without pcbnew: `autolayout strip` on `quilter/returned/m1/candidate4/m1.kicad_pcb` (with its `.kicad_pro` beside it), then `autolayout route out/i2/c4_stripped.kicad_pcb --plane In1.Cu=GND --plane In2.Cu=+3V3 --out ...`: 14.4 s, verifier unconnected **10** (U1.3, 10, 21, 24, 27, 40, 52, R46.1 and others), clearance 1; this matches the 10 KiCad found on the pcbnew-poured board (Update 2). The stripped board has no pours, so plane taps are assumed connected (verifier LIMIT line): a baseline for A/B, not a KiCad number.
+
+U1's 0.4 mm pad centres sit at x = 95.9 + 0.4k (top and bottom rows) and y = 95.5 + 0.4k (left and right rows). The only integer ratio of pad pitch to grid pitch that is not finer than the rules allow is 1 (pitch 0.4 mm, coarser than the 0.3098 mm track + clearance), so the experiment sets the pitch to 0.4 and shifts the origin so a U1 pad lies on a grid node (`AL_PITCH`, `AL_ALIGN`, one run each):
+
+| variant | verifier unconnected | verifier clearance |
+|---|---|---|
+| baseline (pitch 0.3098, origin = outline min) | **10** | 1 |
+| pitch 0.3098, origin through U1 pad (95.9, 95.5) | 20 | 1 |
+| pitch 0.4, origin = outline min | 24 | 2 |
+| pitch 0.4, origin through U1 pad (95.9, 95.5) | 44 | 0 |
+
+Result: **a pad-aligned global grid does not help.** Aligning at 0.4 is the worst case: the coarser grid costs capacity for every net, and putting each pad on a grid node does not buy back what it costs. Together with the earlier 0.1-pitch origin sweep (14 to 33) this says the fix cannot be a different global lattice; it has to be local to the fan-out region (a finer lattice around the many-pin part, or off-grid stubs), which needs a second grid resolution in `RoutingModel`. Not built.
+
+Side finding (not fixed, rule 5): `autolayout pads <board> | head` panics with "failed printing to stdout: Broken pipe" because the CLI prints with `println!`.
