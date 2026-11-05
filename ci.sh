@@ -11,8 +11,14 @@ cd "$(dirname "$0")"
 
 KICAD_PY="${KICAD_PY:-C:/Program Files/KiCad/9.0/bin/python.exe}"
 
+# Every non-code asset must have a row in ASSETS.md.
+bash tools/check_assets.sh
+
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
+
+# ./ci.sh --quick: asset check + fmt + clippy only (seconds; used between edits and by the Stop hook).
+if [[ "${1:-}" == "--quick" ]]; then echo "ci quick: assets, fmt, clippy pass"; exit 0; fi
 if ! out=$(cargo test --workspace --release -- --nocapture 2>&1); then echo "$out"; exit 1; fi
 echo "$out" | grep -E "round-trip byte-exact|pad angles|fuzz:|SKIPPED" || true
 
