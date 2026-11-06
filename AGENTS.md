@@ -64,7 +64,7 @@ Domain docs live in Portcullis (`CLAUDE.md`, `controller/docs/m1-layout-experime
 
 ## ENVIRONMENTS
 - **Windows (owner's machine):** Rust GNU toolchain (`stable-x86_64-pc-windows-gnu`), cargo in `~/.cargo/bin` (may need adding to `PATH`); KiCad 9.0 at `C:/Program Files/KiCad/9.0/` (`kicad-cli.exe`, its python for `tools/*.py`).
-- **Cloud (Ubuntu):** setup = rustup minimal + clippy,rustfmt, and `git clone --depth 1 https://github.com/bwattendorf/Portcullis.git ../Portcullis` with `AUTOLAYOUT_CORPUS` pointing at its `controller/boards`. Needs GitHub access to both private repos. No KiCad or Freerouting: router/placer results made there are "pending KiCad" until graded on Windows. Freerouting comparisons need Java 21+ and the freerouting-2.3.0 jar.
+- **Cloud (Ubuntu):** setup = rustup minimal + clippy,rustfmt, and `git clone --depth 1 https://github.com/SiteSentrix/Portcullis.git ../Portcullis` with `AUTOLAYOUT_CORPUS` pointing at its `controller/boards`. Needs GitHub access to both private repos. No KiCad or Freerouting: router/placer results made there are "pending KiCad" until graded on Windows. Freerouting comparisons need Java 21+ and the freerouting-2.3.0 jar.
 
 ## PITFALLS
 - Doc line lengths: `ROADMAP.md` and `docs/gaps.md` hold multi-thousand-character lines (M7.5 entries). Never `cat` them; `grep -n` or read by line range.
